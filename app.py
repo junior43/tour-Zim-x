@@ -1,4 +1,4 @@
-```
+
 import os
 from datetime import datetime
 
@@ -129,4 +129,3 @@ def whatsapp():
     answer += "\n\nTo get a quote/package, reply: BOOK"
 
     return twiml(answer)
-```
