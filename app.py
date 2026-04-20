@@ -117,15 +117,15 @@ def whatsapp():
         return twiml("Thank you! ✅ Tour_Zim_X received your details and will reply with options and pricing shortly.")
 
     # Normal Q&A
-    completion = client.chat.completions.create(
-        model=OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": body}
-        ],
-        temperature=0.7
-    )
-    answer = completion.choices[0].message.content.strip()
+    resp = client.responses.create(
+    model=OPENAI_MODEL,
+    input=[
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": body}
+    ]
+)
+answer = resp.output_text.strip()
+
     answer += "\n\nTo get a quote/package, reply: BOOK"
 
     return twiml(answer)
