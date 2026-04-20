@@ -1,4 +1,3 @@
-
 import os
 from datetime import datetime
 
@@ -8,9 +7,11 @@ from openai import OpenAI
 
 app = Flask(__name__)
 
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-ZAPIER_WEBHOOK_URL = os.environ.get("ZAPIER_WEBHOOK_URL")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+ZAPIER_WEBHOOK_URL = os.environ.get("ZAPIER_WEBHOOK_URL", "")
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 SYSTEM_PROMPT = """
 You are Tour_Zim_X WhatsApp assistant for Zimbabwe tourism.
@@ -41,6 +42,8 @@ Rules:
 """
 
 def twiml(message: str) -> Response:
+    # Basic XML escaping for &, <, >
+    message = message.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     xml = f'<?xml version="1.0" encoding="UTF-8"?><Response><Message>{message}</Message></Response>'
     return Response(xml, mimetype="text/xml")
 
@@ -60,6 +63,9 @@ def home():
 def whatsapp():
     from_number = request.form.get("From", "")
     body = (request.form.get("Body") or "").strip()
+
+    if not OPENAI_API_KEY:
+        return twiml("Server missing OPENAI_API_KEY. Please set it in Render environment variables.")
 
     # Start lead capture
     if is_lead_intent(body) and not (body.startswith("1)") or body.startswith("1.")):
@@ -118,15 +124,16 @@ def whatsapp():
 
     # Normal Q&A
     resp = client.responses.create(
-    model=OPENAI_MODEL,
-    input=[
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": body}
-    ]
-)
-answer = resp.output_text.strip()
+        model=OPENAI_MODEL,
+        input=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": body}
+        ]
+    )
+    answer = (resp.output_text or "").strip()
+    if not answer:
+        answer = "Thanks! Please tell me which attraction in Zimbabwe you’re interested in, and your travel dates."
 
     answer += "\n\nTo get a quote/package, reply: BOOK"
-
     return twiml(answer)
 
